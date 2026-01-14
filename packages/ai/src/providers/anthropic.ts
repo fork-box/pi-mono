@@ -26,6 +26,7 @@ import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { parseStreamingJson } from "../utils/json-parse.js";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.js";
 
+import { type WebSearchConfig, buildAnthropicWebSearchTool } from "../websearch.js";
 import { transformMessages } from "./transform-messages.js";
 
 // Stealth mode: Mimic Claude Code's tool naming exactly
@@ -109,6 +110,7 @@ export interface AnthropicOptions extends StreamOptions {
 	thinkingBudgetTokens?: number;
 	interleavedThinking?: boolean;
 	toolChoice?: "auto" | "any" | "none" | { type: "tool"; name: string };
+	webSearch?: WebSearchConfig;
 }
 
 export const streamAnthropic: StreamFunction<"anthropic-messages"> = (
@@ -425,6 +427,12 @@ function buildParams(
 		} else {
 			params.tool_choice = options.toolChoice;
 		}
+	}
+
+	// Inject web search tool when enabled
+	if (options?.webSearch?.enabled) {
+		const webSearchTool = buildAnthropicWebSearchTool(options.webSearch);
+		params.tools = [...(params.tools || []), webSearchTool as any];
 	}
 
 	return params;
